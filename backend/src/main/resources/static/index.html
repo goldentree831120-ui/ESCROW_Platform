@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Milestone Escrow</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #131826; --border: #232a3b; --text: #e6e9f0;
+    --muted: #8a91a6; --accent: #5b8cff; --green: #3ddc97; --red: #ff6b6b; --amber: #f5a623;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 32px 20px 64px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
+  .panel h2 { font-size: 1rem; margin: 0 0 12px; }
+  label { display: block; font-size: 0.78rem; color: var(--muted); margin: 10px 0 4px; }
+  input, textarea { width: 100%; padding: 9px 10px; border-radius: 7px; border: 1px solid var(--border); background: #0f1420; color: var(--text); font-size: 0.88rem; }
+  textarea { resize: vertical; min-height: 50px; }
+  button { padding: 9px 14px; border-radius: 7px; border: none; background: var(--accent); color: white; font-weight: 600; cursor: pointer; font-size: 0.85rem; margin-top: 10px; margin-right: 6px; }
+  button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  button.danger { background: var(--red); }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+  .deal { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .deal-head { display: flex; justify-content: space-between; align-items: center; }
+  .pill { padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+  .pill.ACTIVE { background: rgba(91,140,255,0.15); color: var(--accent); }
+  .pill.COMPLETED { background: rgba(61,220,151,0.15); color: var(--green); }
+  .pill.CANCELLED { background: rgba(255,107,107,0.15); color: var(--red); }
+  .pill.PENDING { background: rgba(138,145,166,0.15); color: var(--muted); }
+  .pill.RELEASED { background: rgba(61,220,151,0.15); color: var(--green); }
+  .pill.DISPUTED { background: rgba(245,166,35,0.15); color: var(--amber); }
+  .milestone { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid var(--border); font-size: 0.82rem; }
+  .muted { color: var(--muted); font-size: 0.78rem; }
+  .status-line { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+  .error { color: var(--red); font-size: 0.82rem; margin-top: 8px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Milestone Escrow</h1>
+  <div class="sub">Solidity escrow contract + Spring Boot backend. Transactions go straight from your wallet to the contract; the backend only tracks metadata and reacts to events.</div>
+
+  <div id="authPanel" class="panel">
+    <h2>Sign in</h2>
+    <div class="row">
+      <div>
+        <label>Email</label>
+        <input id="authEmail" type="email" placeholder="you@example.com" />
+      </div>
+      <div>
+        <label>Password</label>
+        <input id="authPassword" type="password" placeholder="min 8 characters" />
+      </div>
+    </div>
+    <label>Display name (for registering only)</label>
+    <input id="authDisplayName" placeholder="Jane Doe" />
+    <div>
+      <button onclick="register()">Register</button>
+      <button class="secondary" onclick="login()">Login</button>
+    </div>
+    <div id="authError" class="error"></div>
+  </div>
+
+  <div id="appPanel" class="hidden">
+    <div class="panel">
+      <h2>Wallet</h2>
+      <div id="walletStatus" class="status-line">Not connected</div>
+      <button onclick="connectWallet()">Connect MetaMask</button>
+    </div>
+
+    <div class="panel">
+      <h2>Create a deal</h2>
+      <label>Freelancer address</label>
+      <input id="dealFreelancer" placeholder="0x..." />
+      <label>Arbiter address (trusted third party)</label>
+      <input id="dealArbiter" placeholder="0x..." />
+      <label>Milestones (one "amount in ETH, description" per line)</label>
+      <textarea id="dealMilestones" placeholder="0.1, Design mockups&#10;0.2, Frontend build&#10;0.2, Backend + deploy"></textarea>
+      <button onclick="createDeal()">Create deal (opens MetaMask)</button>
+      <div id="createError" class="error"></div>
+    </div>
+
+    <div class="panel">
+      <div class="deal-head"><h2>My deals</h2><button class="secondary" onclick="loadDeals()">Refresh</button></div>
+      <div id="dealsList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = "/api";
+const ESCROW_ADDRESS = "REPLACE_WITH_DEPLOYED_ADDRESS"; // from contracts/scripts/deploy.js output
+const ESCROW_ABI = [
+  "function createDeal(address freelancer, address arbiter, uint256[] milestoneAmounts) payable returns (uint256)",
+  "function approveMilestone(uint256 dealId, uint256 milestoneIndex)",
+  "function raiseDispute(uint256 dealId, uint256 milestoneIndex)",
+  "function resolveDispute(uint256 dealId, uint256 milestoneIndex, bool releaseToFreelancer)",
+  "function cancelDeal(uint256 dealId)"
+];
+
+let token = null, provider = null, signer = null, contract = null;
+
+function authHeaders() {
+  return token ? { "Authorization": "Bearer " + token, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
+}
+
+async function register() {
+  await authRequest("/auth/register", {
+    email: val("authEmail"), password: val("authPassword"), displayName: val("authDisplayName") || "New User"
+  });
+}
+
+async function login() {
+  await authRequest("/auth/login", { email: val("authEmail"), password: val("authPassword") });
+}
+
+async function authRequest(path, body) {
+  document.getElementById("authError").textContent = "";
+  try {
+    const res = await fetch(API_BASE + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    token = data.token;
+    document.getElementById("authPanel").classList.add("hidden");
+    document.getElementById("appPanel").classList.remove("hidden");
+    loadDeals();
+  } catch (e) {
+    document.getElementById("authError").textContent = "Auth failed: " + e.message;
+  }
+}
+
+function val(id) { return document.getElementById(id).value.trim(); }
+
+async function connectWallet() {
+  if (!window.ethereum) { alert("MetaMask not found — install it to create/approve deals."); return; }
+  provider = new ethers.BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts", []);
+  signer = await provider.getSigner();
+  contract = new ethers.Contract(ESCROW_ADDRESS, ESCROW_ABI, signer);
+  document.getElementById("walletStatus").textContent = "Connected: " + await signer.getAddress();
+}
+
+async function createDeal() {
+  const errBox = document.getElementById("createError");
+  errBox.textContent = "";
+  if (!contract) { errBox.textContent = "Connect your wallet first."; return; }
+
+  try {
+    const lines = val("dealMilestones").split("\n").map(l => l.trim()).filter(Boolean);
+    const amounts = lines.map(l => ethers.parseEther(l.split(",")[0].trim()));
+    const total = amounts.reduce((a, b) => a + b, 0n);
+
+    const tx = await contract.createDeal(val("dealFreelancer"), val("dealArbiter"), amounts, { value: total });
+    await tx.wait();
+    alert("Deal created! The backend will pick it up from the DealCreated event within a few seconds.");
+    setTimeout(loadDeals, 4000);
+  } catch (e) {
+    errBox.textContent = "Failed to create deal: " + (e.reason || e.message);
+  }
+}
+
+async function loadDeals() {
+  const res = await fetch(API_BASE + "/deals/mine", { headers: authHeaders() });
+  if (!res.ok) return;
+  const deals = await res.json();
+
+  const list = document.getElementById("dealsList");
+  if (deals.length === 0) {
+    list.innerHTML = '<div class="muted">No deals yet — create one above, or ask a client to add your wallet address as the freelancer.</div>';
+    return;
+  }
+
+  list.innerHTML = deals.map(d => `
+    <div class="deal">
+      <div class="deal-head">
+        <strong>${d.title || ("Deal #" + d.dealId)}</strong>
+        <span class="pill ${d.status}">${d.status}</span>
+      </div>
+      <div class="muted">Client ${short(d.clientAddress)} → Freelancer ${short(d.freelancerAddress)} · Arbiter ${short(d.arbiterAddress)}</div>
+      <div class="muted">${d.releasedAmountEth} / ${d.totalAmountEth} ETH released</div>
+      ${d.milestones.map(m => `
+        <div class="milestone">
+          <span>#${m.index} — ${m.amountEth} ETH ${m.description ? "· " + m.description : ""}</span>
+          <span>
+            <span class="pill ${m.status}">${m.status}</span>
+            ${m.status === "PENDING" ? `
+              <button class="secondary" onclick="approveMilestone(${d.dealId}, ${m.index})">Approve</button>
+              <button class="secondary" onclick="disputeMilestone(${d.dealId}, ${m.index})">Dispute</button>
+            ` : ""}
+          </span>
+        </div>
+      `).join("")}
+      ${d.status === "ACTIVE" ? `<button class="danger" onclick="cancelDeal(${d.dealId})">Cancel deal</button>` : ""}
+    </div>
+  `).join("");
+}
+
+function short(addr) { return addr ? addr.slice(0, 6) + "…" + addr.slice(-4) : ""; }
+
+async function approveMilestone(dealId, index) {
+  if (!contract) { alert("Connect your wallet first."); return; }
+  try {
+    const tx = await contract.approveMilestone(dealId, index);
+    await tx.wait();
+    setTimeout(loadDeals, 4000);
+  } catch (e) { alert("Failed: " + (e.reason || e.message)); }
+}
+
+async function disputeMilestone(dealId, index) {
+  if (!contract) { alert("Connect your wallet first."); return; }
+  try {
+    const tx = await contract.raiseDispute(dealId, index);
+    await tx.wait();
+    setTimeout(loadDeals, 4000);
+  } catch (e) { alert("Failed: " + (e.reason || e.message)); }
+}
+
+async function cancelDeal(dealId) {
+  if (!contract) { alert("Connect your wallet first."); return; }
+  try {
+    const tx = await contract.cancelDeal(dealId);
+    await tx.wait();
+    setTimeout(loadDeals, 4000);
+  } catch (e) { alert("Failed: " + (e.reason || e.message)); }
+}
+</script>
+</body>
+</html>
