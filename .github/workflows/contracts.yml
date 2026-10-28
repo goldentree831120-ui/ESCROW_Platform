@@ -42,16 +42,19 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Install Slither and solc 0.8.24
+      - name: Install Slither
+        run: pip install slither-analyzer==0.11.3
+      - name: Download solc 0.8.24 from Solidity's GitHub release (checksum verified)
         run: |
-          pip install slither-analyzer==0.11.3 solc-select==1.1.0
-          solc-select install 0.8.24
-          solc-select use 0.8.24
+          curl -fsSL -o "$RUNNER_TEMP/solc" https://github.com/ethereum/solidity/releases/download/v0.8.24/solc-static-linux
+          echo "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f  $RUNNER_TEMP/solc" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/solc"
+          "$RUNNER_TEMP/solc" --version
       - name: Report on the original (deployed) contract, for the record
-        run: slither contracts/MilestoneEscrow.sol --solc-remaps "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/" --exclude-dependencies --fail-none
+        run: slither contracts/MilestoneEscrow.sol --solc "$RUNNER_TEMP/solc" --solc-remaps "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/" --exclude-dependencies --fail-none
       - name: Gate on V2 (only detectors triaged in security/SLITHER_TRIAGE.md are excluded)
         run: |
-          slither contracts/MilestoneEscrowV2.sol \
+          slither contracts/MilestoneEscrowV2.sol --solc "$RUNNER_TEMP/solc" \
             --solc-remaps "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/" \
             --exclude-dependencies \
             --exclude incorrect-equality,timestamp,pragma,low-level-calls,solc-version,assembly \

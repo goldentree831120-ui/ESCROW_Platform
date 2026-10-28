@@ -38,8 +38,9 @@ cd contracts
 npm ci
 npx hardhat test                      # 29 tests: original 10, attacks 17 (original and V2), 2 randomized
 node scripts/mutation-check.js        # undoes each V2 fix in turn; the tests must catch all 11
-pip install slither-analyzer==0.11.3 solc-select && solc-select install 0.8.24 && solc-select use 0.8.24
-slither contracts/MilestoneEscrowV2.sol --solc-remaps "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/" --exclude-dependencies
+pip install slither-analyzer==0.11.3
+curl -fsSL -o /tmp/solc-0.8.24 https://github.com/ethereum/solidity/releases/download/v0.8.24/solc-static-linux && chmod +x /tmp/solc-0.8.24
+slither contracts/MilestoneEscrowV2.sol --solc /tmp/solc-0.8.24 --solc-remaps "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/" --exclude-dependencies
 ```
 
 CI (`.github/workflows/contracts.yml`) runs all three on every push.
