@@ -49,7 +49,14 @@ The backend never takes custody of the user's funds. Transactions that move ETH 
 
 ```text
 contracts/
-└── MilestoneEscrow.sol
+├── contracts/MilestoneEscrow.sol      the deployed contract (unchanged)
+├── contracts/MilestoneEscrowV2.sol    the same contract with the security findings fixed
+├── contracts/test-helpers/            a contract "client" used by the attack tests
+├── test/                              original tests, attack tests, randomized invariant test
+└── scripts/mutation-check.js          undoes each V2 fix to prove a test catches it
+
+security/                              threat model, Slither triage, raw Slither reports
+SECURITY.md                            summary of the review
 
 backend/
 ├── src/main/java/
@@ -420,6 +427,39 @@ A few things stood out:
 
 ---
 
+# Security Review
+
+[![Contracts](https://github.com/goldentree831120-ui/ESCROW_Platform/actions/workflows/contracts.yml/badge.svg)](https://github.com/goldentree831120-ui/ESCROW_Platform/actions/workflows/contracts.yml)
+
+I reviewed my own contract the way an auditor would: a threat model, Slither with every finding
+triaged, and tests that actually run each attack. Summary in [`SECURITY.md`](SECURITY.md), details in
+[`security/THREAT_MODEL.md`](security/THREAT_MODEL.md).
+
+What the attack tests showed about the deployed contract:
+
+* **The client can cancel after the work is delivered** and take back every unreleased milestone,
+  and can front-run the freelancer's dispute (the test puts both transactions in one block).
+* **The client can be its own arbiter**; nothing checks who the arbiter is, and the freelancer never
+  agrees to it.
+* **A silent arbiter locks the money forever**: one open dispute also blocks cancelling, so every
+  other unreleased milestone is stuck too.
+* **Reentrancy is properly defended**, and a randomized test (250 random actions) found the
+  contract's balance equal to what it still owes after every single action.
+
+`MilestoneEscrowV2.sol` fixes these: the freelancer must accept the deal (and the arbiter) first,
+after which the client can't cancel; the arbiter must be a third party; a dispute the arbiter
+ignores for 30 days can be split 50/50; and payouts are withdrawn rather than pushed. A mutation
+check undoes each fix in turn and the tests catch all 11. The deployed contract can't be patched,
+so V2 would be a new deployment.
+
+```bash
+cd contracts && npm ci
+npx hardhat test                  # 29 tests
+node scripts/mutation-check.js    # 11/11 planted regressions caught
+```
+
+---
+
 # Possible Next Steps
 
 There are a few directions I'd take this project next:
@@ -430,6 +470,8 @@ There are a few directions I'd take this project next:
 * Add stronger recovery and retry handling to the event listener.
 * Support a WebSocket RPC connection for lower-latency event processing.
 * Replace H2 with PostgreSQL in the deployed environment.
+* Verify wallet ownership at registration with Sign-In with Ethereum (finding B1 in the security review).
+* Deploy `MilestoneEscrowV2` and teach the event listener its new events.
 * Add more comprehensive integration tests covering backend ↔ blockchain synchronization.
 
 ---

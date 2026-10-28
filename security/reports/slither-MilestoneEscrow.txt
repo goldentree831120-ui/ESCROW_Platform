@@ -1,0 +1,78 @@
+'solc-0.8.24 --version' running
+'solc-0.8.24 @openzeppelin/contracts/=node_modules/@openzeppelin/contracts/ contracts/MilestoneEscrow.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --allow-paths .,contracts' running
+INFO:Detectors:
+MilestoneEscrow._release(uint256,uint256,address) (contracts/MilestoneEscrow.sol#187-201) sends eth to arbitrary user
+	Dangerous calls:
+	- (ok,None) = address(recipient).call{value: m.amount}() (contracts/MilestoneEscrow.sol#194)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#functions-that-send-ether-to-arbitrary-destinations
+INFO:Detectors:
+Reentrancy in MilestoneEscrow._release(uint256,uint256,address) (contracts/MilestoneEscrow.sol#187-201):
+	External calls:
+	- (ok,None) = address(recipient).call{value: m.amount}() (contracts/MilestoneEscrow.sol#194)
+	State variables written after the call(s):
+	- deal.status = DealStatus.Completed (contracts/MilestoneEscrow.sol#198)
+	MilestoneEscrow.deals (contracts/MilestoneEscrow.sol#40) can be used in cross function reentrancies:
+	- MilestoneEscrow.createDeal(address,address,uint256[]) (contracts/MilestoneEscrow.sol#74-106)
+	- MilestoneEscrow.dealActive(uint256) (contracts/MilestoneEscrow.sol#65-68)
+	- MilestoneEscrow.deals (contracts/MilestoneEscrow.sol#40)
+	- MilestoneEscrow.raiseDispute(uint256,uint256) (contracts/MilestoneEscrow.sol#124-134)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities
+INFO:Detectors:
+MilestoneEscrow.dealActive(uint256) (contracts/MilestoneEscrow.sol#65-68) uses a dangerous strict equality:
+	- require(bool,string)(deals[dealId].status == DealStatus.Active,deal not active) (contracts/MilestoneEscrow.sol#66)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
+INFO:Detectors:
+MilestoneEscrow.raiseDispute(uint256,uint256) (contracts/MilestoneEscrow.sol#124-134) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(msg.sender == deal.client || msg.sender == deal.freelancer,not a party to this deal) (contracts/MilestoneEscrow.sol#126)
+MilestoneEscrow.cancelDeal(uint256) (contracts/MilestoneEscrow.sol#157-177) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(ok,refund transfer failed) (contracts/MilestoneEscrow.sol#173)
+MilestoneEscrow._release(uint256,uint256,address) (contracts/MilestoneEscrow.sol#187-201) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(ok,payment transfer failed) (contracts/MilestoneEscrow.sol#195)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+StorageSlot.getAddressSlot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#66-70) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#67-69)
+StorageSlot.getBooleanSlot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#75-79) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#76-78)
+StorageSlot.getBytes32Slot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#84-88) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#85-87)
+StorageSlot.getUint256Slot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#93-97) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#94-96)
+StorageSlot.getInt256Slot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#102-106) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#103-105)
+StorageSlot.getStringSlot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#111-115) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#112-114)
+StorageSlot.getStringSlot(string) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#120-124) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#121-123)
+StorageSlot.getBytesSlot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#129-133) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#130-132)
+StorageSlot.getBytesSlot(bytes) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#138-142) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#139-141)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+INFO:Detectors:
+2 different versions of Solidity are used:
+	- Version constraint ^0.8.24 is used by:
+		-^0.8.24 (contracts/MilestoneEscrow.sol#2)
+	- Version constraint ^0.8.20 is used by:
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#5)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#different-pragma-directives-are-used
+INFO:Detectors:
+Version constraint ^0.8.20 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- VerbatimInvalidDeduplication
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess.
+It is used by:
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#5)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+INFO:Detectors:
+Low level call in MilestoneEscrow.cancelDeal(uint256) (contracts/MilestoneEscrow.sol#157-177):
+	- (ok,None) = address(deals[dealId].client).call{value: refund}() (contracts/MilestoneEscrow.sol#172)
+Low level call in MilestoneEscrow._release(uint256,uint256,address) (contracts/MilestoneEscrow.sol#187-201):
+	- (ok,None) = address(recipient).call{value: m.amount}() (contracts/MilestoneEscrow.sol#194)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+INFO:Slither:contracts/MilestoneEscrow.sol analyzed (3 contracts with 100 detectors), 19 result(s) found

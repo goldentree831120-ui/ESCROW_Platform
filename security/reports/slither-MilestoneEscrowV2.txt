@@ -1,0 +1,75 @@
+'solc-0.8.24 --version' running
+'solc-0.8.24 @openzeppelin/contracts/=node_modules/@openzeppelin/contracts/ contracts/MilestoneEscrowV2.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --allow-paths .,contracts' running
+INFO:Detectors:
+MilestoneEscrowV2.cancelDeal(uint256) (contracts/MilestoneEscrowV2.sol#175-178) uses a dangerous strict equality:
+	- require(bool,string)(deals[dealId].status == DealStatus.Proposed,deal already accepted: use a dispute) (contracts/MilestoneEscrowV2.sol#176)
+MilestoneEscrowV2.inStatus(uint256,MilestoneEscrowV2.DealStatus) (contracts/MilestoneEscrowV2.sol#80-83) uses a dangerous strict equality:
+	- require(bool,string)(deals[dealId].status == s,deal not active) (contracts/MilestoneEscrowV2.sol#81)
+MilestoneEscrowV2.inStatus(uint256,MilestoneEscrowV2.DealStatus) (contracts/MilestoneEscrowV2.sol#80-83) uses a dangerous strict equality:
+	- require(bool,string)(deals[dealId].status == s,wrong deal status) (contracts/MilestoneEscrowV2.sol#81)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
+INFO:Detectors:
+MilestoneEscrowV2.approveMilestone(uint256,uint256) (contracts/MilestoneEscrowV2.sol#125-135) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(! m.released,already released) (contracts/MilestoneEscrowV2.sol#131)
+	- require(bool,string)(! m.disputed,milestone is disputed) (contracts/MilestoneEscrowV2.sol#132)
+MilestoneEscrowV2.raiseDispute(uint256,uint256) (contracts/MilestoneEscrowV2.sol#137-146) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(msg.sender == deal.client || msg.sender == deal.freelancer,not a party to this deal) (contracts/MilestoneEscrowV2.sol#139)
+	- require(bool,string)(! m.released,already released) (contracts/MilestoneEscrowV2.sol#141)
+	- require(bool,string)(! m.disputed,already disputed) (contracts/MilestoneEscrowV2.sol#142)
+MilestoneEscrowV2.resolveDispute(uint256,uint256,bool) (contracts/MilestoneEscrowV2.sol#148-159) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(m.disputed,milestone is not disputed) (contracts/MilestoneEscrowV2.sol#154)
+	- require(bool,string)(! m.released,already released) (contracts/MilestoneEscrowV2.sol#155)
+MilestoneEscrowV2.resolveExpiredDispute(uint256,uint256) (contracts/MilestoneEscrowV2.sol#163-172) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(m.disputed,milestone is not disputed) (contracts/MilestoneEscrowV2.sol#165)
+	- require(bool,string)(! m.released,already released) (contracts/MilestoneEscrowV2.sol#166)
+	- require(bool,string)(block.timestamp >= uint256(m.disputedAt) + DISPUTE_TIMEOUT,arbiter still has time) (contracts/MilestoneEscrowV2.sol#167)
+MilestoneEscrowV2.cancelDeal(uint256) (contracts/MilestoneEscrowV2.sol#175-178) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(deals[dealId].status == DealStatus.Proposed,deal already accepted: use a dispute) (contracts/MilestoneEscrowV2.sol#176)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+StorageSlot.getAddressSlot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#66-70) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#67-69)
+StorageSlot.getBooleanSlot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#75-79) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#76-78)
+StorageSlot.getBytes32Slot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#84-88) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#85-87)
+StorageSlot.getUint256Slot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#93-97) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#94-96)
+StorageSlot.getInt256Slot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#102-106) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#103-105)
+StorageSlot.getStringSlot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#111-115) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#112-114)
+StorageSlot.getStringSlot(string) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#120-124) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#121-123)
+StorageSlot.getBytesSlot(bytes32) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#129-133) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#130-132)
+StorageSlot.getBytesSlot(bytes) (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#138-142) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#139-141)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+INFO:Detectors:
+2 different versions of Solidity are used:
+	- Version constraint 0.8.24 is used by:
+		-0.8.24 (contracts/MilestoneEscrowV2.sol#2)
+	- Version constraint ^0.8.20 is used by:
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#5)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#different-pragma-directives-are-used
+INFO:Detectors:
+Version constraint ^0.8.20 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- VerbatimInvalidDeduplication
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess.
+It is used by:
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/StorageSlot.sol#5)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+INFO:Detectors:
+Low level call in MilestoneEscrowV2.withdraw() (contracts/MilestoneEscrowV2.sol#187-195):
+	- (ok,None) = address(msg.sender).call{value: amount}() (contracts/MilestoneEscrowV2.sol#192)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+INFO:Slither:contracts/MilestoneEscrowV2.sol analyzed (3 contracts with 100 detectors), 20 result(s) found
